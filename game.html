@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tower Troll: Ultimate Sync</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background: #050505; color: #fff; font-family: 'Orbitron', sans-serif; 
+            overflow: hidden; touch-action: none; 
+        }
+
+        /* ARAYÜZ KATMANI */
+        #ui-layer { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95); 
+            z-index: 9999; display: flex; justify-content: center; align-items: center; 
+        }
+        .card { 
+            background: #111; padding: 25px; border: 2px solid #0f0; 
+            text-align: center; width: 90%; max-width: 400px; border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,255,0,0.2);
+        }
+        input { 
+            width: 100%; padding: 12px; margin: 10px 0; font-family: inherit; 
+            text-align: center; border: 1px solid #333; background: #000; color: #0f0; border-radius: 5px;
+        }
+        button { 
+            width: 100%; padding: 15px; margin: 8px 0; font-family: inherit; 
+            cursor: pointer; background: #0f0; color: #000; border: none; 
+            font-weight: 900; border-radius: 5px; transition: 0.2s;
+        }
+        button:active { transform: scale(0.95); }
+        .hidden { display: none !important; }
+
+        /* ANA OYUN DÜZENİ */
+        #main-wrapper { 
+            display: flex; flex-direction: row; width: 100vw; height: 100vh; 
+        }
+
+        /* OYUN ALANI */
+        #game-container { 
+            flex: 3; position: relative; background: #0a0a0a; 
+            border-right: 2px solid #1a1a1a; display: flex; flex-direction: column;
+        }
+        canvas { width: 100%; height: 100%; flex-grow: 1; }
+
+        /* RAKİP PANELİ (Responsive) */
+        #sidebar { 
+            flex: 1; background: #000; display: flex; flex-direction: column; 
+            padding: 10px; gap: 10px; min-width: 120px;
+        }
+
+        .opp-slot { 
+            flex: 1; background: #080808; border: 1px solid #222; 
+            position: relative; border-radius: 8px; overflow: hidden;
+            display: flex; align-items: flex-end;
+        }
+        .opp-bar { 
+            width: 100%; background: linear-gradient(to top, #0f0, #004400); 
+            transition: height 0.4s ease-out; height: 0%;
+        }
+        .opp-info {
+            position: absolute; top: 5px; width: 100%; text-align: center;
+            font-size: 10px; font-weight: bold; z-index: 10; color: #fff;
+        }
+        .troll-btn {
+            position: absolute; top: 25px; left: 5px; right: 5px;
+            background: #f00; color: #fff; border: none; padding: 5px;
+            font-size: 9px; cursor: pointer; border-radius: 3px; z-index: 20;
+            font-family: inherit;
+        }
+
+        /* MOBİL KONTROLLER */
+        #controls { 
+            position: absolute; bottom: 30px; left: 0; width: 100%; 
+            display: flex; justify-content: center; gap: 25px; z-index: 100;
+        }
+        .ctrl-btn { 
+            width: 70px; height: 70px; background: rgba(255,255,255,0.05); 
+            border: 2px solid rgba(0,255,0,0.3); border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 24px; color: #0f0; backdrop-filter: blur(5px);
+        }
+
+        #hud {
+            position: absolute; top: 15px; left: 15px; font-size: 12px;
+            color: #0f0; z-index: 50; text-shadow: 0 0 5px #000;
+        }
+
+        /* EKRAN DİKEYSE (MOBİL) */
+        @media (max-width: 600px) {
+            #main-wrapper { flex-direction: column; }
+            #sidebar { flex-direction: row; height: 120px; min-height: 120px; }
+            #game-container { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="ui-layer">
+    <div id="card-init" class="card">
+        <h1>TOWER TROLL</h1>
+        <input type="text" id="nick" placeholder="NICKNAME" maxlength="10">
+        <button onclick="startNet('host')">ODA OLUŞTUR</button>
+        <button onclick="showJoin()" style="background:#222; color:#fff; border:1px solid #444;">ODAYA KATIL</button>
+    </div>
+
+    <div id="card-lobby" class="card hidden">
+        <h2>ODA KODU</h2>
+        <h1 id="display-code" style="font-size:40px; color:#0f0; letter-spacing:5px;">----</h1>
+        <p id="player-count">HAZIR: 1 / 4</p>
+        <button onclick="launchMatch()">BAŞLAT</button>
+    </div>
+
+    <div id="card-join" class="card hidden">
+        <h2>KODU GİR</h2>
+        <input type="text" id="input-code" placeholder="4 HANELİ KOD">
+        <button onclick="startNet('join')">KATIL</button>
+        <button onclick="location.reload()" style="background:transparent; color:#666;">İPTAL</button>
+    </div>
+</div>
+
+<div id="main-wrapper">
+    <div id="game-container">
+        <div id="hud">TROLL HAKKI: <span id="troll-val">3</span></div>
+        <canvas id="gameCanvas"></canvas>
+        <div id="controls">
+            <div class="ctrl-btn" id="l-btn">◀</div>
+            <div class="ctrl-btn" id="d-btn">▼</div>
+            <div class="ctrl-btn" id="r-btn">▶</div>
+        </div>
+    </div>
+    
+    <div id="sidebar">
+        <div class="opp-slot" id="slot0"><div class="opp-info">BOŞ</div><button class="troll-btn hidden" onclick="triggerTroll(0)">TROLLE!</button><div class="opp-bar"></div></div>
+        <div class="opp-slot" id="slot1"><div class="opp-info">BOŞ</div><button class="troll-btn hidden" onclick="triggerTroll(1)">TROLLE!</button><div class="opp-bar"></div></div>
+        <div class="opp-slot" id="slot2"><div class="opp-info">BOŞ</div><button class="troll-btn hidden" onclick="triggerTroll(2)">TROLLE!</button><div class="opp-bar"></div></div>
+    </div>
+</div>
+
+<script>
+    let peer, conn, myRole, myNick, myPeerId, roomCode;
+    let players = {}; 
+    let trollCount = 3;
+    let targetWin = 18; // Kule uzunluğu (Daha uzun oyun)
+    let isLive = false;
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let stack = [], activeBlock = null;
+
+    function showJoin() {
+        document.getElementById('card-init').classList.add('hidden');
+        document.getElementById('card-join').classList.remove('hidden');
+    }
+
+    function startNet(mode) {
+        myRole = mode;
+        myNick = document.getElementById('nick').value || "OYUNCU";
+        const code = (mode === 'host') ? Math.floor(1000 + Math.random()*9000).toString() : document.getElementById('input-code').value;
+        
+        peer = new Peer(mode === 'host' ? code : null);
+
+        peer.on('open', (id) => {
+            myPeerId = id;
+            if(mode === 'host') {
+                document.getElementById('card-init').classList.add('hidden');
+                document.getElementById('card-lobby').classList.remove('hidden');
+                document.getElementById('display-code').innerText = id;
+                players[id] = {n: myNick, h: 0};
+            } else {
+                roomCode = code;
+                let c = peer.connect(code);
+                handleConnection(c);
+            }
+        });
+
+        peer.on('connection', handleConnection);
+    }
+
+    function handleConnection(c) {
+        conn = c;
+        c.on('open', () => {
+            if(myRole === 'join') c.send({type: 'join', n: myNick});
+            c.on('data', (d) => {
+                if(d.type === 'join' && myRole === 'host') {
+                    players[c.peer] = {n: d.n, h: 0};
+                    syncAll();
+                }
+                if(d.type === 'start') initGame();
+                if(d.type === 'sync') { players = d.ps; refreshBars(); }
+                if(d.type === 'troll_act') popBlock();
+                if(d.type === 'win_msg') { alert("ZAFER: " + d.n); location.reload(); }
+            });
+        });
+    }
+
+    function syncAll() {
+        if(myRole !== 'host') return;
+        let count = Object.keys(players).length;
+        document.getElementById('player-count').innerText = `HAZIR: ${count} / 4`;
+        broadcast({type: 'sync', ps: players});
+    }
+
+    function broadcast(data) {
+        if(myRole === 'host') {
+            peer._connections.forEach(cs => cs.forEach(c => c.send(data)));
+        } else {
+            conn.send(data);
+        }
+    }
+
+    // TROLL SİSTEMİ
+    function triggerTroll(idx) {
+        if(trollCount <= 0) return;
+        let targets = Object.keys(players).filter(id => id !== myPeerId);
+        if(targets[idx]) {
+            trollCount--;
+            document.getElementById('troll-val').innerText = trollCount;
+            broadcast({type: 'troll_request', target: targets[idx]});
+        }
+    }
+
+    // Host üzerinden yönlendirme
+    peer?.on('connection', (c) => {
+        c.on('data', (d) => {
+            if(d.type === 'troll_request' && myRole === 'host') {
+                if(d.target === myPeerId) popBlock();
+                else peer._connections.get(d.target)[0].send({type: 'troll_act'});
+            }
+        });
+    });
+
+    function popBlock() {
+        if(stack.length > 0) {
+            stack.pop();
+            reportHeight();
+        }
+    }
+
+    // OYUN MOTORU
+    function launchMatch() {
+        broadcast({type: 'start'});
+        initGame();
+    }
+
+    function initGame() {
+        document.getElementById('ui-layer').style.display = 'none';
+        isLive = true;
+        window.addEventListener('resize', resize);
+        resize();
+        newBlock();
+        gameLoop();
+    }
+
+    function newBlock() {
+        activeBlock = { x: canvas.width/2-25, y: 0, w: 50, h: 25, c: '#0f0' };
+    }
+
+    function gameLoop() {
+        if(!isLive) return;
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+
+        // Hedef Çizgisi
+        ctx.strokeStyle = '#222';
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(0, canvas.height - (targetWin * 25), canvas.width, 1);
+        ctx.setLineDash([]);
+
+        activeBlock.y += 2.5;
+
+        if(hitTest()) {
+            activeBlock.y -= 2.5;
+            stack.push({...activeBlock, c: '#006622'});
+            reportHeight();
+            if(stack.length >= targetWin) broadcast({type: 'win_msg', n: myNick});
+            newBlock();
+        }
+
+        ctx.fillStyle = activeBlock.c;
+        ctx.fillRect(activeBlock.x, activeBlock.y, activeBlock.w, activeBlock.h);
+        
+        stack.forEach(b => {
+            ctx.fillStyle = b.c;
+            ctx.fillRect(b.x, b.y, b.w, b.h);
+            ctx.strokeStyle = '#000'; ctx.strokeRect(b.x, b.y, b.w, b.h);
+        });
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    function hitTest() {
+        if(activeBlock.y + activeBlock.h >= canvas.height) return true;
+        return stack.some(b => 
+            activeBlock.x < b.x + b.w && activeBlock.x + activeBlock.w > b.x &&
+            activeBlock.y + activeBlock.h >= b.y
+        );
+    }
+
+    function reportHeight() {
+        players[myPeerId].h = stack.length / targetWin;
+        broadcast({type: myRole === 'host' ? 'sync' : 'update_h', h: players[myPeerId].h, ps: players});
+    }
+
+    function refreshBars() {
+        let others = Object.keys(players).filter(id => id !== myPeerId);
+        others.forEach((id, i) => {
+            let slot = document.getElementById(`slot${i}`);
+            if(slot) {
+                slot.querySelector('.opp-info').innerText = players[id].n;
+                slot.querySelector('.opp-bar').style.height = (players[id].h * 100) + "%";
+                slot.querySelector('.troll-btn').classList.remove('hidden');
+            }
+        });
+    }
+
+    function move(dir) {
+        if(!activeBlock) return;
+        if(dir === 'L' && activeBlock.x > 0) activeBlock.x -= 25;
+        if(dir === 'R' && activeBlock.x < canvas.width-50) activeBlock.x += 25;
+        if(dir === 'D') activeBlock.y += 50;
+    }
+
+    // EVENT LISTENERS
+    document.getElementById('l-btn').onclick = () => move('L');
+    document.getElementById('r-btn').onclick = () => move('R');
+    document.getElementById('d-btn').onclick = () => move('D');
+    window.addEventListener('keydown', e => {
+        if(e.key === 'ArrowLeft') move('L');
+        if(e.key === 'ArrowRight') move('R');
+        if(e.key === 'ArrowDown') move('D');
+    });
+
+    function resize() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+    }
+</script>
+</body>
+</html>
