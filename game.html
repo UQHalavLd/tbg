@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tower Rivals: Online</title>
+    <title>Tower Rivals: V2</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
@@ -22,10 +22,10 @@
             color: var(--text);
             font-family: 'Orbitron', sans-serif;
             overflow: hidden;
-            touch-action: none; /* Mobilde kaydırmayı engelle */
+            touch-action: none;
         }
 
-        /* --- UI Katmanı --- */
+        /* --- UI Katmanı (Menüler) --- */
         #ui-layer {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -33,62 +33,69 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 20;
-            background: rgba(0,0,0,0.85);
-            backdrop-filter: blur(5px);
+            z-index: 999; /* En üstte */
+            background: rgba(0,0,0,0.95); /* Koyu arka plan */
+            transition: opacity 0.5s;
         }
 
         .card {
             background: var(--panel-bg);
             padding: 30px;
             border-radius: 12px;
-            border: 1px solid #333;
+            border: 2px solid #333;
             text-align: center;
-            box-shadow: 0 0 20px rgba(0,255,204,0.1);
+            box-shadow: 0 0 30px rgba(0,255,204,0.1);
             max-width: 400px;
             width: 90%;
         }
 
-        h1 { margin-top: 0; color: var(--accent); }
+        h1 { margin-top: 0; color: var(--accent); letter-spacing: 3px; }
         
         input {
-            background: #333;
-            border: 1px solid #555;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
+            background: #000;
+            border: 2px solid #555;
+            color: var(--accent);
+            padding: 15px;
+            border-radius: 8px;
             width: 80%;
-            margin: 10px 0;
+            margin: 15px 0;
             font-family: 'Orbitron';
+            font-size: 1.2em;
             text-align: center;
+            text-transform: uppercase; /* Otomatik büyük harf */
         }
 
         button {
             background: var(--accent);
             color: black;
             border: none;
-            padding: 12px 24px;
-            border-radius: 5px;
-            font-weight: bold;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-weight: 800;
             cursor: pointer;
-            margin: 5px;
+            margin: 10px;
             font-family: 'Orbitron';
             transition: 0.2s;
-            width: 90%;
+            width: 100%;
+            font-size: 1em;
         }
         button:hover { transform: scale(1.05); box-shadow: 0 0 15px var(--accent); }
-        button.secondary { background: #444; color: white; }
+        button.secondary { background: transparent; border: 2px solid var(--accent); color: var(--accent); }
+        button.secondary:hover { background: var(--accent); color: black; }
 
         .hidden { display: none !important; }
 
         #room-id-display {
-            font-size: 1.5em;
-            letter-spacing: 2px;
-            color: var(--accent);
+            font-size: 3em;
+            font-weight: bold;
+            letter-spacing: 5px;
+            color: #fff;
             margin: 20px 0;
             user-select: all;
-            border: 2px dashed #555;
+            background: #333;
             padding: 10px;
+            border-radius: 10px;
+            border: 2px dashed var(--accent);
         }
 
         /* --- Oyun Alanı --- */
@@ -96,90 +103,93 @@
             display: flex;
             height: 100vh;
             width: 100%;
+            background: #000;
         }
 
         /* Sol taraf: Benim oyunum */
         #my-game {
             flex: 3;
             position: relative;
-            border-right: 2px solid #333;
-            background: #1a1a1a;
+            border-right: 4px solid #333;
+            background: #111;
         }
         canvas { display: block; width: 100%; height: 100%; }
 
         /* Sağ taraf: Rakiplerin durumu */
         #opponents {
             flex: 1;
-            background: #0d0d0d;
+            background: #050505;
             display: flex;
             flex-direction: column;
-            justify-content: space-around;
             padding: 10px;
+            gap: 10px;
         }
 
         .opponent-bar-container {
-            height: 30%;
-            background: #222;
+            flex: 1;
+            background: #1a1a1a;
             border-radius: 8px;
             position: relative;
             overflow: hidden;
-            border: 1px solid #444;
+            border: 1px solid #333;
         }
         
         .opponent-bar {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 0%;
+            bottom: 0; left: 0; width: 100%; height: 0%;
             background: linear-gradient(to top, #ff0055, #ff6699);
-            transition: height 0.3s ease;
+            transition: height 0.5s ease;
         }
 
-        .opp-name {
+        .opp-info {
             position: absolute;
-            top: 5px; left: 5px;
-            font-size: 0.8em;
+            top: 5px; left: 0; width: 100%;
+            text-align: center;
+            font-size: 0.9em;
             color: white;
-            text-shadow: 1px 1px 2px black;
+            text-shadow: 2px 2px 4px black;
             z-index: 2;
+            font-weight: bold;
         }
 
         /* HUD */
         #hud-timer {
             position: absolute;
-            top: 20px; left: 20px;
-            font-size: 2em;
+            top: 20px; left: 50%; transform: translateX(-50%);
+            font-size: 3em;
             color: white;
             z-index: 10;
+            text-shadow: 0 0 10px black;
         }
         #hud-status {
             position: absolute;
-            top: 20px; right: 20px;
+            top: 10px; right: 10px;
             color: #aaa;
+            font-size: 0.8em;
         }
 
-        /* Kontroller Mobilde */
+        /* Oyun Sonu */
+        #game-over-screen {
+            z-index: 1000;
+        }
+        
+        /* Mobil Kontroller */
         #mobile-controls {
-            position: absolute;
-            bottom: 20px;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            z-index: 15;
+            position: absolute; bottom: 30px; width: 100%;
+            display: flex; justify-content: center; gap: 40px;
+            z-index: 50;
         }
         .touch-btn {
-            width: 70px; height: 70px;
+            width: 80px; height: 80px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
             border-radius: 50%;
-            background: rgba(255,255,255,0.2);
-            border: 2px solid white;
-            color: white;
-            font-size: 24px;
             display: flex; align-items: center; justify-content: center;
+            font-size: 30px; color: white;
             user-select: none;
         }
-        @media (min-width: 769px) { #mobile-controls { display: none; } }
+        .touch-btn:active { background: rgba(0,255,204,0.3); border-color: var(--accent); }
+        @media (min-width: 1024px) { #mobile-controls { display: none; } }
 
     </style>
 </head>
@@ -189,43 +199,42 @@
         
         <div id="login-screen" class="card">
             <h1>TOWER RIVALS</h1>
-            <input type="text" id="username" placeholder="Adını Gir (Örn: Ahmet)" maxlength="10">
+            <input type="text" id="username" placeholder="ADINIZ" maxlength="8">
             <div style="margin-top:20px;">
-                <button onclick="showCreateRoom()">ODA OLUŞTUR</button>
-                <button class="secondary" onclick="showJoinRoom()">ODAYA KATIL</button>
+                <button onclick="setupGame('host')">ODA OLUŞTUR</button>
+                <button class="secondary" onclick="setupGame('join')">ODAYA KATIL</button>
             </div>
         </div>
 
         <div id="create-screen" class="card hidden">
             <h2>LOBİ BEKLENİYOR</h2>
-            <p>Arkadaşlarına bu kodu ver:</p>
-            <div id="room-id-display">YÜKLENİYOR...</div>
-            <p id="player-count">Oyuncular: 1/4</p>
-            <hr style="border-color:#333">
-            <h3>Oyun Modu</h3>
-            <button onclick="startGameHost('race')">ZİRVE YARIŞI (İlk Çıkan)</button>
-            <button onclick="startGameHost('time')" class="secondary">SÜRE MODU (60sn)</button>
+            <p>ODA KODU:</p>
+            <div id="room-id-display">...</div>
+            <p id="player-count" style="color:#aaa">Bekleniyor...</p>
+            <hr style="border-color:#333; margin: 20px 0;">
+            <button onclick="startGameHost('race')">BAŞLAT: YARIŞ</button>
+            <button class="secondary" onclick="startGameHost('time')">BAŞLAT: SÜRE (60sn)</button>
         </div>
 
         <div id="join-screen" class="card hidden">
-            <h2>ODAYA KATIL</h2>
-            <input type="text" id="join-id-input" placeholder="Oda Kodunu Yapıştır">
+            <h2>ODAYA GİR</h2>
+            <input type="text" id="join-id-input" placeholder="ODA KODU (ÖRN: A1B2)">
             <button onclick="joinRoom()">BAĞLAN</button>
-            <p id="join-status"></p>
+            <p id="join-status" style="margin-top:10px; color:var(--accent);"></p>
         </div>
 
         <div id="game-over-screen" class="card hidden">
-            <h1 id="winner-announce">KAZANAN: AHMET</h1>
-            <p id="final-scores"></p>
-            <button onclick="location.reload()">LOBİYE DÖN</button>
+            <h1 id="winner-announce" style="font-size: 2em; color: var(--accent);">KAZANAN</h1>
+            <div id="final-scores" style="text-align: left; margin: 20px 0; font-size: 1.1em; line-height: 1.6;"></div>
+            <button onclick="location.reload()">TEKRAR OYNA</button>
         </div>
     </div>
 
     <div id="game-container">
         <div id="my-game">
             <canvas id="gameCanvas"></canvas>
-            <div id="hud-timer">00:00</div>
-            <div id="hud-status">Bağlantı bekleniyor...</div>
+            <div id="hud-timer"></div>
+            <div id="hud-status"></div>
             
             <div id="mobile-controls">
                 <div class="touch-btn" id="btn-left">◄</div>
@@ -236,458 +245,407 @@
         
         <div id="opponents">
             <div class="opponent-bar-container" id="opp-1">
-                <div class="opp-name">Oyuncu 2</div>
+                <div class="opp-info">Bekleniyor</div>
                 <div class="opponent-bar" id="bar-1"></div>
             </div>
             <div class="opponent-bar-container" id="opp-2">
-                <div class="opp-name">Oyuncu 3</div>
+                <div class="opp-info">Bekleniyor</div>
                 <div class="opponent-bar" id="bar-2"></div>
             </div>
             <div class="opponent-bar-container" id="opp-3">
-                <div class="opp-name">Oyuncu 4</div>
+                <div class="opp-info">Bekleniyor</div>
                 <div class="opponent-bar" id="bar-3"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- GLOBAL DEĞİŞKENLER ---
+        // --- AYARLAR ---
         const CONFIG = {
             gravity: 0.15,
-            dropSpeed: 2.5,
-            fastSpeed: 8,
-            moveSpeed: 5,
-            blockSize: 40,
-            winLinePercent: 0.2 // Tepeden %20 aşağısı kazanma çizgisi
+            dropSpeed: 3,
+            fastSpeed: 10,
+            moveSpeed: 6,
+            blockSize: 45,
+            winLinePercent: 0.2
         };
 
+        // --- DEĞİŞKENLER ---
         let myPeer = null;
-        let myConn = null; // Host isek null, Client isek Host bağlantısı
+        let myConn = null;
         let isHost = false;
-        let connections = []; // Host için bağlı oyuncular
-        let myId = null;
+        let connections = [];
+        let myId = "";
         let myName = "";
         let gameMode = 'race';
-        let gameState = 'lobby'; // lobby, playing, finished
+        let gameState = 'lobby'; 
+        let playersData = {}; // { id: { name, percent, id } }
 
-        // Oyun Değişkenleri
+        // Kısa ID Oluşturucu (5 Hane)
+        function generateShortId() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // I, O, 1, 0 karıştığı için çıkardım
+            let result = '';
+            for (let i = 0; i < 5; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // --- P2P BAĞLANTI ---
+        
+        function setupGame(role) {
+            myName = document.getElementById('username').value.trim() || "Misafir";
+            
+            if(role === 'host') {
+                isHost = true;
+                // Rastgele kısa ID ile Peer başlat
+                myId = generateShortId();
+                initPeer(myId);
+                
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('create-screen').classList.remove('hidden');
+                document.getElementById('room-id-display').innerText = myId;
+                
+                // Kendini listeye ekle
+                playersData['host'] = { name: myName, percent: 0, id: 'host' };
+                updateLobbyCount();
+
+            } else {
+                isHost = false;
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('join-screen').classList.remove('hidden');
+            }
+        }
+
+        function initPeer(customId) {
+            // Custom ID kullanmaya çalışıyoruz
+            myPeer = new Peer(customId, { debug: 1 });
+
+            myPeer.on('open', (id) => {
+                console.log('Peer açıldı:', id);
+            });
+
+            myPeer.on('error', (err) => {
+                if(err.type === 'unavailable-id') {
+                    // Çok nadir çakışma olursa
+                    alert("Oda kodu çakıştı, lütfen sayfayı yenile.");
+                } else {
+                    console.error(err);
+                }
+            });
+
+            // Gelen bağlantılar (Host için)
+            myPeer.on('connection', (conn) => {
+                if(isHost) {
+                    connections.push(conn);
+                    conn.on('open', () => {
+                        conn.send({ type: 'WELCOME', mode: gameMode });
+                        updateLobbyCount();
+                    });
+                    conn.on('data', (data) => handleData(data, conn.peer));
+                    conn.on('close', () => {
+                        connections = connections.filter(c => c !== conn);
+                        updateLobbyCount();
+                    });
+                } else {
+                    // Client'a biri bağlanırsa (Host)
+                    conn.on('data', (data) => handleData(data));
+                }
+            });
+        }
+
+        function joinRoom() {
+            let hostId = document.getElementById('join-id-input').value.trim().toUpperCase();
+            if(hostId.length < 4) { alert("Lütfen geçerli bir kod gir."); return; }
+
+            document.getElementById('join-status').innerText = "Bağlanıyor...";
+            
+            // Rastgele bir client ID ile başlat (Çakışma önemsiz)
+            myPeer = new Peer(null);
+            
+            myPeer.on('open', () => {
+                // Host'a bağlan
+                myConn = myPeer.connect(hostId);
+                
+                myConn.on('open', () => {
+                    document.getElementById('join-status').innerText = "Lobiye Girildi! Host bekleniyor...";
+                    myConn.send({ type: 'JOIN', name: myName });
+                });
+
+                myConn.on('data', (data) => handleData(data));
+                
+                myConn.on('close', () => {
+                    alert("Host bağlantısı koptu!");
+                    location.reload();
+                });
+                
+                // Eğer host ID bulunamazsa PeerJS error atar
+                myPeer.on('error', (err) => {
+                     document.getElementById('join-status').innerText = "Oda bulunamadı!";
+                });
+            });
+        }
+
+        function updateLobbyCount() {
+            let count = connections.length + 1;
+            document.getElementById('player-count').innerText = `${count} Oyuncu Hazır`;
+        }
+
+        // --- VERİ İLETİŞİMİ ---
+
+        function handleData(data, senderId) {
+            if(data.type === 'JOIN' && isHost) {
+                playersData[senderId] = { name: data.name, percent: 0, id: senderId };
+                // Yeni gelene mevcut listeyi atabiliriz (opsiyonel)
+            }
+            else if(data.type === 'START') {
+                // Oyunu başlat (Client)
+                gameMode = data.mode;
+                startRealGame();
+            }
+            else if(data.type === 'SYNC') {
+                // Host'tan gelen durum güncellemesi
+                playersData = data.players;
+                timeLeft = data.time;
+                updateVisuals();
+            }
+            else if(data.type === 'UPDATE' && isHost) {
+                // Client'tan gelen yükseklik bilgisi
+                if(playersData[senderId]) {
+                    playersData[senderId].percent = data.percent;
+                }
+            }
+            else if(data.type === 'GAME_OVER') {
+                endGameScreen(data.winner, data.scores);
+            }
+        }
+
+        // --- OYUN DÖNGÜSÜ ---
+
+        function startGameHost(mode) {
+            gameMode = mode;
+            // Herkese Başla komutu
+            connections.forEach(c => c.send({ type: 'START', mode: mode }));
+            startRealGame();
+            
+            // Host Sync Loop
+            setInterval(() => {
+                if(gameState !== 'playing') return;
+                
+                // Kendi verimi güncelle
+                playersData['host'].percent = scoreHeight / canvas.height;
+                
+                // Süre kontrol
+                if(gameMode === 'time') {
+                    timeLeft -= 0.1;
+                    if(timeLeft <= 0) handleFinishHost();
+                }
+
+                // Win Condition Race
+                if(gameMode === 'race') {
+                    for(let pid in playersData) {
+                        if(playersData[pid].percent >= (1 - CONFIG.winLinePercent)) {
+                            handleFinishHost(pid);
+                            return;
+                        }
+                    }
+                }
+
+                // Veriyi dağıt
+                let packet = { type: 'SYNC', players: playersData, time: timeLeft };
+                connections.forEach(c => c.send(packet));
+                updateVisuals();
+
+            }, 100);
+        }
+
+        function startRealGame() {
+            // UI KATMANINI GİZLE (Blur sorununu çözen yer)
+            document.getElementById('ui-layer').style.display = 'none';
+            
+            gameState = 'playing';
+            timeLeft = 60;
+            resize();
+            spawnBlock();
+            requestAnimationFrame(gameLoop);
+
+            // Client Sync Loop
+            if(!isHost) {
+                setInterval(() => {
+                    if(gameState === 'playing' && myConn) {
+                        let myPercent = scoreHeight / canvas.height;
+                        myConn.send({ type: 'UPDATE', percent: myPercent });
+                    }
+                }, 100);
+            }
+        }
+
+        function handleFinishHost(winnerId) {
+            gameState = 'finished';
+            let winnerName = winnerId ? playersData[winnerId].name : "Süre Bitti!";
+            
+            // Time mode ise en yükseği bul
+            if(!winnerId && gameMode === 'time') {
+                let maxP = -1;
+                for(let pid in playersData) {
+                    if(playersData[pid].percent > maxP) {
+                        maxP = playersData[pid].percent;
+                        winnerName = playersData[pid].name;
+                    }
+                }
+            }
+
+            let scoreText = "";
+            Object.values(playersData).forEach(p => {
+                scoreText += `<b>${p.name}:</b> %${Math.floor(p.percent * 100)}<br>`;
+            });
+
+            let msg = { type: 'GAME_OVER', winner: winnerName, scores: scoreText };
+            connections.forEach(c => c.send(msg));
+            endGameScreen(winnerName, scoreText);
+        }
+
+        function endGameScreen(winner, scores) {
+            gameState = 'finished';
+            document.getElementById('ui-layer').style.display = 'flex'; // UI Geri Gel
+            document.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
+            document.getElementById('game-over-screen').classList.remove('hidden');
+            
+            document.getElementById('winner-announce').innerText = winner + " KAZANDI!";
+            document.getElementById('final-scores').innerHTML = scores;
+        }
+
+        function updateVisuals() {
+            // Süre
+            if(gameMode === 'time') {
+                document.getElementById('hud-timer').innerText = Math.ceil(timeLeft);
+            } else {
+                document.getElementById('hud-timer').innerText = "";
+            }
+
+            // Rakipleri Çiz
+            let opponents = Object.values(playersData).filter(p => p.name !== myName);
+            for(let i=0; i<3; i++) {
+                let div = document.getElementById(`opp-${i+1}`);
+                let bar = document.getElementById(`bar-${i+1}`);
+                let info = div.querySelector('.opp-info');
+                
+                if(opponents[i]) {
+                    div.style.opacity = "1";
+                    info.innerText = opponents[i].name + ` (%${Math.floor(opponents[i].percent*100)})`;
+                    bar.style.height = (opponents[i].percent * 100) + "%";
+                } else {
+                    div.style.opacity = "0.1";
+                    info.innerText = "---";
+                    bar.style.height = "0%";
+                }
+            }
+        }
+
+        // --- OYUN FİZİĞİ ---
         let canvas = document.getElementById('gameCanvas');
         let ctx = canvas.getContext('2d');
         let blocks = [];
         let currentBlock = null;
-        let scoreHeight = 0; // Piksel cinsinden yükseklik
-        let maxCanvasHeight = window.innerHeight;
+        let scoreHeight = 0;
+        let keys = {};
         
-        let timeLeft = 60;
-        let lastTime = 0;
-        
-        // Rakiplerin verisi: { id: { name: "Ali", percent: 0.5, color: "#f00" } }
-        let playersData = {}; 
-
-        // --- P2P AĞ KURULUMU ---
-
-        function initPeer() {
-            // PeerJS cloud server kullanıyoruz (ücretsiz)
-            myPeer = new Peer(null, {
-                debug: 2
-            });
-
-            myPeer.on('open', (id) => {
-                myId = id;
-                console.log('ID alındı:', myId);
-                if(isHost) {
-                    document.getElementById('room-id-display').innerText = myId;
-                }
-            });
-
-            myPeer.on('connection', (conn) => {
-                if(isHost) {
-                    handleHostConnection(conn);
-                } else {
-                    // Client isem ve biri bana bağlanıyorsa (genelde olmaz ama)
-                    conn.close();
-                }
-            });
-            
-            // Veri geldiğinde
-            myPeer.on('error', (err) => {
-                alert("Bağlantı Hatası: " + err.type);
-            });
-        }
-
-        // --- HOST MANTIĞI ---
-
-        function showCreateRoom() {
-            myName = document.getElementById('username').value || "Host";
-            isHost = true;
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('create-screen').classList.remove('hidden');
-            
-            initPeer();
-            
-            // Kendimizi listeye ekleyelim
-            playersData[0] = { name: myName, percent: 0, id: 'host' };
-        }
-
-        function handleHostConnection(conn) {
-            connections.push(conn);
-            
-            conn.on('open', () => {
-                console.log("Yeni oyuncu bağlandı!");
-                updatePlayerCount();
-                
-                // Oyuncuya hoşgeldin mesajı
-                conn.send({ type: 'WELCOME', mode: gameMode });
-            });
-
-            conn.on('data', (data) => {
-                handleData(data, conn.peer);
-            });
-            
-            conn.on('close', () => {
-                connections = connections.filter(c => c !== conn);
-                updatePlayerCount();
-            });
-        }
-
-        function updatePlayerCount() {
-            let count = connections.length + 1; // +1 kendimiz
-            document.getElementById('player-count').innerText = `Oyuncular: ${count}/4`;
-        }
-
-        function startGameHost(mode) {
-            gameMode = mode;
-            // Tüm oyunculara başla sinyali gönder
-            let startMsg = { type: 'START', mode: mode };
-            connections.forEach(c => c.send(startMsg));
-            
-            // Kendimiz de başlayalım
-            startGameLocal(mode);
-            
-            // Host döngüsü (Senkronizasyon)
-            setInterval(hostSyncLoop, 100); // Saniyede 10 kere durum güncelle
-        }
-
-        function hostSyncLoop() {
-            if(gameState !== 'playing') return;
-            
-            // Benim durumum
-            let myPercent = scoreHeight / canvas.height;
-            playersData['host'] = { name: myName, percent: myPercent };
-
-            // Veriyi paketle
-            let syncPacket = {
-                type: 'SYNC',
-                players: playersData,
-                time: timeLeft
-            };
-
-            // Herkese gönder
-            connections.forEach(c => c.send(syncPacket));
-            
-            // Ekranı güncelle (Rakipleri çiz)
-            updateOpponentVisuals(playersData);
-
-            // Süre kontrolü
-            if(gameMode === 'time') {
-                timeLeft -= 0.1;
-                if(timeLeft <= 0) finishGame();
-            }
-        }
-
-        // --- CLIENT (OYUNCU) MANTIĞI ---
-
-        function showJoinRoom() {
-            myName = document.getElementById('username').value || "Oyuncu";
-            isHost = false;
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('join-screen').classList.remove('hidden');
-            initPeer();
-        }
-
-        function joinRoom() {
-            let hostId = document.getElementById('join-id-input').value.trim();
-            if(!hostId) return;
-
-            document.getElementById('join-status').innerText = "Bağlanıyor...";
-            
-            myConn = myPeer.connect(hostId);
-            
-            myConn.on('open', () => {
-                document.getElementById('join-status').innerText = "Bağlandı! Host bekleniyor...";
-                document.getElementById('hud-status').innerText = "Lobiye Katılındı";
-                
-                // İsim gönder
-                myConn.send({ type: 'JOIN', name: myName });
-            });
-
-            myConn.on('data', (data) => {
-                handleData(data);
-            });
-            
-            myConn.on('close', () => alert("Host bağlantısı koptu!"));
-        }
-
-        function clientSyncLoop() {
-            if(gameState !== 'playing') return;
-            // Sadece kendi yüksekliğimi host'a gönderiyorum
-            let myPercent = scoreHeight / canvas.height;
-            if(myConn && myConn.open) {
-                myConn.send({ type: 'UPDATE', percent: myPercent });
-            }
-        }
-
-        // --- ORTAK VERİ İŞLEME ---
-
-        function handleData(data, senderId) {
-            switch(data.type) {
-                case 'JOIN':
-                    // Host alır: Yeni oyuncuyu listeye kaydet
-                    if(isHost) {
-                        playersData[senderId] = { name: data.name, percent: 0, id: senderId };
-                    }
-                    break;
-                    
-                case 'START':
-                    // Client alır: Oyunu başlat
-                    startGameLocal(data.mode);
-                    setInterval(clientSyncLoop, 100);
-                    break;
-                
-                case 'UPDATE':
-                    // Host alır: Client'ın yüksekliğini güncelle
-                    if(isHost && playersData[senderId]) {
-                        playersData[senderId].percent = data.percent;
-                        checkWinCondition(senderId, data.percent);
-                    }
-                    break;
-
-                case 'SYNC':
-                    // Client alır: Tüm oyuncuların durumu
-                    playersData = data.players;
-                    timeLeft = data.time;
-                    updateOpponentVisuals(playersData);
-                    document.getElementById('hud-timer').innerText = Math.ceil(timeLeft);
-                    break;
-
-                case 'GAME_OVER':
-                    gameState = 'finished';
-                    showGameOver(data.winner, data.scores);
-                    break;
-            }
-        }
-
-        function checkWinCondition(playerId, percent) {
-            if(gameState !== 'playing') return;
-
-            if(gameMode === 'race') {
-                // Eğer biri %80 yüksekliğe ulaştıysa (Ters mantık: 0 en üst, 1 en alt. WinLine 0.2 ise, 1-percent > 0.8 gibi)
-                // Basit mantık: scoreHeight pixel. percent = scoreHeight/canvasHeight.
-                // Eğer bloklar %80 dolduysa.
-                if(percent >= (1 - CONFIG.winLinePercent)) {
-                    finishGame(playerId);
-                }
-            }
-        }
-
-        function finishGame(winnerId) {
-            gameState = 'finished';
-            
-            // Kazananı belirle
-            let winnerName = "";
-            let scoresText = "";
-            
-            if(winnerId) {
-                winnerName = playersData[winnerId] ? playersData[winnerId].name : "Biri";
-            } else {
-                // Süre bitti, en yüksek kim?
-                let maxP = -1;
-                let bestId = null;
-                for(let pid in playersData) {
-                    if(playersData[pid].percent > maxP) {
-                        maxP = playersData[pid].percent;
-                        bestId = pid;
-                    }
-                }
-                winnerName = playersData[bestId] ? playersData[bestId].name : "Kimse";
-            }
-
-            // Skor metni
-            for(let pid in playersData) {
-                let p = playersData[pid];
-                scoresText += `${p.name}: %${Math.floor(p.percent * 100)} <br>`;
-            }
-
-            let overData = { type: 'GAME_OVER', winner: winnerName, scores: scoresText };
-            
-            // Herkese bildir
-            if(isHost) {
-                connections.forEach(c => c.send(overData));
-                handleData(overData); // Kendime de bildir
-            }
-        }
-
-        function showGameOver(winner, scores) {
-            document.getElementById('ui-layer').style.pointerEvents = "auto";
-            document.getElementById('game-over-screen').classList.remove('hidden');
-            document.getElementById('winner-announce').innerText = "KAZANAN: " + winner;
-            document.getElementById('final-scores').innerHTML = scores;
-        }
-
-        function updateOpponentVisuals(allPlayers) {
-            // Kendim hariç diğerlerini bul
-            let opponents = Object.values(allPlayers).filter(p => p.name !== myName);
-            
-            // UI'daki barları güncelle
-            for(let i=0; i<3; i++) {
-                let container = document.getElementById(`opp-${i+1}`);
-                let bar = document.getElementById(`bar-${i+1}`);
-                
-                if(opponents[i]) {
-                    container.style.opacity = "1";
-                    container.querySelector('.opp-name').innerText = opponents[i].name;
-                    bar.style.height = (opponents[i].percent * 100) + "%";
-                } else {
-                    container.style.opacity = "0.2"; // Oyuncu yoksa silik
-                }
-            }
-        }
-
-
-        // --- YEREL OYUN FİZİĞİ (TOWER LOGIC) ---
-        
-        function startGameLocal(mode) {
-            document.getElementById('ui-layer').style.pointerEvents = "none"; // Tıklamayı kapat
-            document.querySelectorAll('.card').forEach(c => c.classList.add('hidden'));
-            document.getElementById('mobile-controls').style.display = 'flex'; // Mobilde göster
-            
-            gameState = 'playing';
-            resize();
-            spawnBlock();
-            requestAnimationFrame(gameLoop);
-        }
-
         function spawnBlock() {
             currentBlock = {
-                x: canvas.width / 2 - CONFIG.blockSize / 2,
-                y: 0,
+                x: canvas.width/2 - CONFIG.blockSize/2,
+                y: -CONFIG.blockSize,
                 w: CONFIG.blockSize,
                 h: CONFIG.blockSize,
-                color: isHost ? '#00f2ff' : '#00ffcc'
+                color: `hsl(${Math.random()*360}, 70%, 50%)`
             };
         }
 
         function gameLoop() {
             if(gameState !== 'playing') return;
             
-            updatePhysics();
-            draw();
-            
-            // Win check (Local) - Host'a veri zaten gidiyor, ama host isek kendimizi de kontrol edelim
-            if(isHost) {
-                checkWinCondition('host', scoreHeight / canvas.height);
-            }
-            
-            requestAnimationFrame(gameLoop);
-        }
-
-        let keys = {};
-        window.addEventListener('keydown', e => keys[e.key] = true);
-        window.addEventListener('keyup', e => keys[e.key] = false);
-
-        // Mobil Kontroller
-        document.getElementById('btn-left').addEventListener('touchstart', () => keys['ArrowLeft'] = true);
-        document.getElementById('btn-left').addEventListener('touchend', () => keys['ArrowLeft'] = false);
-        document.getElementById('btn-right').addEventListener('touchstart', () => keys['ArrowRight'] = true);
-        document.getElementById('btn-right').addEventListener('touchend', () => keys['ArrowRight'] = false);
-        document.getElementById('btn-down').addEventListener('touchstart', () => keys['ArrowDown'] = true);
-        document.getElementById('btn-down').addEventListener('touchend', () => keys['ArrowDown'] = false);
-
-
-        function updatePhysics() {
-            if(!currentBlock) return;
-
             // Hareket
-            if(keys['ArrowLeft'] || keys['a']) currentBlock.x -= CONFIG.moveSpeed;
-            if(keys['ArrowRight'] || keys['d']) currentBlock.x += CONFIG.moveSpeed;
+            if(keys['ArrowLeft']) currentBlock.x -= CONFIG.moveSpeed;
+            if(keys['ArrowRight']) currentBlock.x += CONFIG.moveSpeed;
             
-            // Sınırlar
             if(currentBlock.x < 0) currentBlock.x = 0;
             if(currentBlock.x + currentBlock.w > canvas.width) currentBlock.x = canvas.width - currentBlock.w;
 
-            // Düşme
-            let speed = (keys['ArrowDown'] || keys['s']) ? CONFIG.fastSpeed : CONFIG.dropSpeed;
+            let speed = keys['ArrowDown'] ? CONFIG.fastSpeed : CONFIG.dropSpeed;
             currentBlock.y += speed;
 
             // Çarpışma
             if(checkCollision()) {
-                // Geri al ve yerleştir
-                currentBlock.y -= speed; 
+                currentBlock.y -= speed;
                 blocks.push(currentBlock);
                 
                 // Yükseklik hesapla
                 let highest = canvas.height;
                 blocks.forEach(b => { if(b.y < highest) highest = b.y; });
                 scoreHeight = canvas.height - highest;
-
+                
                 spawnBlock();
             }
+
+            // Çizim
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0,0,canvas.width, canvas.height);
+
+            // Win Line
+            if(gameMode === 'race') {
+                let ly = canvas.height * CONFIG.winLinePercent;
+                ctx.strokeStyle = '#00ff00';
+                ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(canvas.width, ly); ctx.stroke();
+            }
+
+            // Bloklar
+            for(let b of blocks) {
+                ctx.fillStyle = b.color;
+                ctx.fillRect(b.x, b.y, b.w, b.h);
+                ctx.strokeStyle = 'black';
+                ctx.strokeRect(b.x, b.y, b.w, b.h);
+            }
+            if(currentBlock) {
+                ctx.fillStyle = currentBlock.color;
+                ctx.fillRect(currentBlock.x, currentBlock.y, currentBlock.w, currentBlock.h);
+            }
+
+            requestAnimationFrame(gameLoop);
         }
 
         function checkCollision() {
-            if(currentBlock.y + currentBlock.h > canvas.height) return true;
-            
+            if(currentBlock.y + currentBlock.h >= canvas.height) return true;
             for(let b of blocks) {
-                if(currentBlock.x < b.x + b.w &&
-                   currentBlock.x + currentBlock.w > b.x &&
-                   currentBlock.y + currentBlock.h > b.y &&
-                   currentBlock.y < b.y + b.h) {
+                if(currentBlock.x < b.x + b.w && currentBlock.x + currentBlock.w > b.x &&
+                   currentBlock.y + currentBlock.h > b.y && currentBlock.y < b.y + b.h) {
                     return true;
                 }
             }
             return false;
         }
 
-        function draw() {
-            // Temizle
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(0,0, canvas.width, canvas.height);
-
-            // Yarış çizgisi
-            if(gameMode === 'race') {
-                let lineY = canvas.height * CONFIG.winLinePercent;
-                ctx.strokeStyle = '#00ff00';
-                ctx.setLineDash([10, 10]);
-                ctx.beginPath();
-                ctx.moveTo(0, lineY);
-                ctx.lineTo(canvas.width, lineY);
-                ctx.stroke();
-                ctx.setLineDash([]);
-                ctx.fillStyle = '#00ff00';
-                ctx.fillText("BİTİŞ ÇİZGİSİ", 10, lineY - 5);
-            }
-
-            // Statik bloklar
-            ctx.fillStyle = '#555';
-            for(let b of blocks) {
-                ctx.fillRect(b.x, b.y, b.w, b.h);
-                ctx.strokeStyle = '#000';
-                ctx.strokeRect(b.x, b.y, b.w, b.h);
-            }
-
-            // Düşen blok
-            if(currentBlock) {
-                ctx.fillStyle = currentBlock.color;
-                ctx.fillRect(currentBlock.x, currentBlock.y, currentBlock.w, currentBlock.h);
-            }
-        }
-
         function resize() {
-            let container = document.getElementById('my-game');
-            canvas.width = container.clientWidth;
-            canvas.height = container.clientHeight;
+            canvas.width = document.getElementById('my-game').clientWidth;
+            canvas.height = document.getElementById('my-game').clientHeight;
         }
         window.addEventListener('resize', resize);
+
+        // Kontroller
+        window.addEventListener('keydown', e => keys[e.key] = true);
+        window.addEventListener('keyup', e => keys[e.key] = false);
+        
+        // Mobil
+        const btnL = document.getElementById('btn-left');
+        const btnR = document.getElementById('btn-right');
+        const btnD = document.getElementById('btn-down');
+        
+        btnL.addEventListener('touchstart', (e)=>{e.preventDefault(); keys['ArrowLeft']=true;});
+        btnL.addEventListener('touchend', (e)=>{e.preventDefault(); keys['ArrowLeft']=false;});
+        
+        btnR.addEventListener('touchstart', (e)=>{e.preventDefault(); keys['ArrowRight']=true;});
+        btnR.addEventListener('touchend', (e)=>{e.preventDefault(); keys['ArrowRight']=false;});
+        
+        btnD.addEventListener('touchstart', (e)=>{e.preventDefault(); keys['ArrowDown']=true;});
+        btnD.addEventListener('touchend', (e)=>{e.preventDefault(); keys['ArrowDown']=false;});
 
     </script>
 </body>
